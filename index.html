@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FiguMate – Ritmo Matemático</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --c1: #ff6b6b; --c2: #ffd93d; --c3: #6bcb77; --c4: #4d96ff;
+  --c5: #c77dff; --dark: #1a0533; --card: rgba(255,255,255,0.97);
+  --shadow: 0 20px 60px rgba(0,0,0,.25);
+  --radius: 24px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Nunito',sans-serif;overflow:hidden}
+
+/* ─── ANIMATED BG ──────────────────────────────────────────── */
+body{background:linear-gradient(135deg,#1a0533,#0d1f6e,#0a4d68,#065535);
+  background-size:400% 400%;animation:bgAnim 12s ease infinite;}
+@keyframes bgAnim{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* Stars */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,2s) ease-in-out infinite alternate}
+@keyframes twinkle{0%{opacity:.2;transform:scale(1)}100%{opacity:1;transform:scale(1.4)}}
+
+/* ─── CONTAINERS ───────────────────────────────────────────── */
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  z-index:10;transition:opacity .5s,visibility .5s}
+.screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
+
+.panel{background:var(--card);border-radius:var(--radius);padding:40px 48px;
+  box-shadow:var(--shadow);width:min(96vw,520px);max-height:92vh;overflow-y:auto;
+  position:relative;border:3px solid rgba(255,255,255,.6);scrollbar-width:thin}
+.panel::-webkit-scrollbar{width:6px}.panel::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+
+/* ─── SPLASH ───────────────────────────────────────────────── */
+#splash{background:radial-gradient(ellipse at 50% 30%,#2b0068 0%,#0d0030 70%);z-index:100;
+  flex-direction:column;gap:0}
+.splash-logo{font-family:'Fredoka One',cursive;font-size:clamp(2.4rem,7vw,4rem);
+  color:#fff;text-align:center;line-height:1.1;
+  animation:splashDrop .9s cubic-bezier(.22,1,.36,1) both}
+.splash-logo span{color:var(--c2)}
+.splash-sub{font-size:1.1rem;color:rgba(255,255,255,.7);letter-spacing:.15em;
+  text-transform:uppercase;margin-top:8px;
+  animation:fadeUp .8s .3s both}
+.splash-author{font-size:.8rem;color:rgba(255,255,255,.4);letter-spacing:.2em;
+  text-transform:uppercase;position:absolute;bottom:30px;
+  animation:fadeIn 1s 1.5s both}
+.splash-notes{display:flex;gap:30px;margin-top:40px;animation:fadeUp .8s .6s both}
+.note-icon{font-size:3rem;animation:noteBounce 1.6s ease-in-out infinite}
+.note-icon:nth-child(2){animation-delay:.2s}.note-icon:nth-child(3){animation-delay:.4s}
+@keyframes noteBounce{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-18px) rotate(5deg)}}
+.splash-bar{width:260px;height:6px;background:rgba(255,255,255,.15);border-radius:3px;
+  margin-top:50px;overflow:hidden;animation:fadeIn .5s 1s both}
+.splash-bar-fill{height:100%;background:linear-gradient(90deg,var(--c4),var(--c5),var(--c1));
+  border-radius:3px;animation:loadBar 2.5s 1s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes loadBar{0%{width:0}100%{width:100%}}
+@keyframes splashDrop{0%{transform:translateY(-60px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes fadeUp{0%{transform:translateY(20px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+
+/* ─── SHARED FORM ELEMENTS ─────────────────────────────────── */
+.panel h1{font-family:'Fredoka One',cursive;font-size:2rem;color:var(--dark);
+  text-align:center;margin-bottom:6px}
+.panel h2{font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--dark);
+  text-align:center;margin-bottom:20px}
+.subtitle{text-align:center;color:#888;font-size:.9rem;margin-bottom:28px}
+
+label{display:block;font-weight:700;font-size:.85rem;color:#555;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;margin-top:16px}
+input[type=text],input[type=password],input[type=number],select{
+  width:100%;padding:14px 18px;font-size:1rem;font-family:'Nunito',sans-serif;
+  border:2.5px solid #e0e0e0;border-radius:14px;background:#fafafa;
+  transition:border-color .25s,box-shadow .25s;outline:none;font-weight:600}
+input:focus,select:focus{border-color:var(--c4);box-shadow:0 0 0 4px rgba(77,150,255,.15)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 28px;border:none;border-radius:14px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:1rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.08em;transition:all .2s;
+  width:100%;margin-top:10px}
+.btn:hover{transform:translateY(-3px);filter:brightness(1.08)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:linear-gradient(135deg,var(--c4),var(--c5));color:#fff;
+  box-shadow:0 8px 24px rgba(77,150,255,.4)}
+.btn-success{background:linear-gradient(135deg,var(--c3),#2eb567);color:#fff;
+  box-shadow:0 8px 24px rgba(107,203,119,.4)}
+.btn-warning{background:linear-gradient(135deg,var(--c2),#ffb347);color:var(--dark);
+  box-shadow:0 8px 24px rgba(255,217,61,.4)}
+.btn-danger{background:linear-gradient(135deg,var(--c1),#c0392b);color:#fff;
+  box-shadow:0 8px 24px rgba(255,107,107,.4)}
+.btn-ghost{background:rgba(0,0,0,.06);color:#555;box-shadow:none}
+.btn-ghost:hover{background:rgba(0,0,0,.1);filter:none}
+.btn-sm{width:auto;padding:10px 20px;font-size:.85rem;margin-top:0}
+
+.divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:#bbb;font-size:.85rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#e8e8e8}
+
+.tab-row{display:flex;gap:6px;margin-bottom:24px;background:#f0f0f0;border-radius:12px;padding:4px}
+.tab{flex:1;padding:10px;border:none;border-radius:10px;cursor:pointer;font-family:'Nunito',sans-serif;
+  font-weight:700;font-size:.9rem;background:transparent;color:#888;transition:all .2s}
+.tab.active{background:#fff;color:var(--dark);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+
+.msg{padding:12px 16px;border-radius:12px;font-size:.9rem;font-weight:700;margin-top:12px;display:none}
+.msg.show{display:block}
+.msg.error{background:#fff0f0;color:#c0392b;border:2px solid #ffb3b3}
+.msg.success{background:#f0fff4;color:#27ae60;border:2px solid #b3ffc8}
+
+/* ─── MAIN MENU ────────────────────────────────────────────── */
+.menu-header{text-align:center;margin-bottom:24px}
+.user-chip{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--c4),var(--c5));
+  color:#fff;padding:8px 18px;border-radius:30px;font-weight:700;font-size:.9rem;margin-bottom:12px}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.mode-card{border:3px solid transparent;border-radius:18px;padding:20px 14px;
+  text-align:center;cursor:pointer;transition:all .25s;background:#fafafa}
+.mode-card:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.mode-card.selected{border-color:var(--c4);background:rgba(77,150,255,.08)}
+.mode-icon{font-size:2.2rem;display:block;margin-bottom:8px}
+.mode-name{font-weight:800;font-size:.9rem;color:var(--dark)}
+.mode-desc{font-size:.75rem;color:#888;margin-top:4px}
+
+/* ─── RANKING ──────────────────────────────────────────────── */
+.rank-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.rank-item{display:flex;align-items:center;gap:14px;padding:14px 18px;
+  background:#fafafa;border-radius:14px;border:2px solid #f0f0f0;
+  animation:fadeUp .4s both}
+.rank-medal{font-size:1.5rem;width:32px;text-align:center;flex-shrink:0}
+.rank-name{font-weight:800;flex:1;font-size:.95rem}
+.rank-details{text-align:right;font-size:.8rem;color:#888}
+.rank-score{font-family:'Fredoka One',cursive;font-size:1.3rem;color:var(--c4);display:block}
+.rank-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.rank-tab{padding:7px 14px;border-radius:20px;border:2px solid #e0e0e0;
+  background:#fff;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;color:#666}
+.rank-tab.active{background:var(--c4);border-color:var(--c4);color:#fff}
+
+/* ─── GAME SCREEN ──────────────────────────────────────────── */
+#game-screen{z-index:20;align-items:flex-start;overflow-y:auto;padding:20px;
+  display:flex!important;flex-direction:column}
+#game-screen.hidden{display:none!important}
+.game-wrap{width:min(100%,1300px);margin:0 auto}
+.game-topbar{display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,.15);backdrop-filter:blur(12px);
+  border-radius:18px;padding:14px 24px;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.game-topbar-left{display:flex;align-items:center;gap:14px}
+.game-title{font-family:'Fredoka One',cursive;color:#fff;font-size:1.3rem}
+.badge{background:rgba(255,255,255,.2);color:#fff;padding:6px 14px;
+  border-radius:20px;font-weight:700;font-size:.85rem}
+.badge.timer-badge{background:rgba(255,107,107,.8);animation:timerPulse 1s infinite}
+@keyframes timerPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.badge.timer-warn{background:rgba(255,50,50,.9)}
+
+.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-bottom:24px}
+.ex-card{background:var(--card);border-radius:20px;padding:22px;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);border:3px solid transparent;
+  transition:all .3s;position:relative;overflow:hidden}
+.ex-card::before{content:'';position:absolute;inset:-3px;z-index:-1;border-radius:20px;
+  background:linear-gradient(135deg,var(--c4),var(--c5),var(--c1));opacity:.5}
+.ex-card:hover{transform:scale(1.02)}
+.ex-num{font-weight:800;color:#aaa;font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.figures-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;justify-content:center;min-height:90px;margin-bottom:16px}
+.figures-row img{width:64px;height:64px;border-radius:12px;border:2px solid #fff;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);transition:transform .3s;object-fit:contain;background:#f8f8f8}
+.figures-row img:hover{transform:scale(1.2) rotate(5deg)}
+.figures-row .op{font-size:1.6rem;font-weight:900;color:var(--c1);background:#fff8f8;
+  padding:4px 10px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.ex-input{width:100%;padding:12px 16px;font-size:1.1rem;font-weight:700;
+  border:2.5px solid #e0e0e0;border-radius:12px;text-align:center;
+  font-family:'Nunito',sans-serif;transition:all .25s;outline:none;background:#fafafa}
+.ex-input:focus{border-color:var(--c4);box-shadow:0 0 0 4px rgba(77,150,255,.15)}
+.ex-input.correct{border-color:var(--c3);background:#f0fff4}
+.ex-input.wrong{border-color:var(--c1);background:#fff5f5}
+.ex-fb{font-size:.85rem;font-weight:700;margin-top:8px;padding:8px 12px;
+  border-radius:10px;display:none;text-align:center}
+.ex-fb.show{display:block}
+.ex-fb.correct{background:#e8fdf0;color:#27ae60}
+.ex-fb.wrong{background:#fff0f0;color:#e74c3c}
+.ex-fb.hint{background:#fff9e6;color:#f39c12}
+
+.game-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:24px}
+.game-actions .btn{width:auto;flex:1;min-width:140px}
+
+.score-banner{background:linear-gradient(135deg,var(--c5),var(--c4));color:#fff;
+  border-radius:18px;padding:20px 28px;text-align:center;display:none;margin-bottom:20px}
+.score-banner.show{display:block;animation:fadeUp .5s both}
+.score-big{font-family:'Fredoka One',cursive;font-size:3rem}
+.score-label{font-size:1rem;opacity:.85}
+
+/* ─── COUNTDOWN ────────────────────────────────────────────── */
+#countdown-screen{z-index:200;background:radial-gradient(ellipse at 50% 40%,#1a0066,#000030);
+  flex-direction:column;gap:20px}
+.countdown-num{font-family:'Fredoka One',cursive;font-size:min(30vw,12rem);color:#fff;
+  text-shadow:0 0 60px var(--c5),0 0 120px var(--c4);
+  animation:countPop .8s cubic-bezier(.22,1,.36,1) both}
+@keyframes countPop{0%{transform:scale(.2);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.countdown-label{font-family:'Fredoka One',cursive;color:rgba(255,255,255,.7);font-size:1.4rem}
+
+/* ─── TOAST ────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1a0533ee;color:#fff;padding:14px 28px;border-radius:30px;
+  font-weight:700;font-size:.95rem;z-index:999;opacity:0;
+  transition:all .35s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ─── UTIL ─────────────────────────────────────────────────── */
+.row{display:flex;gap:10px}.row .btn{flex:1}
+.center{text-align:center}
+.mt{margin-top:20px}
+.emoji-title{font-size:2.4rem;display:block;text-align:center;margin-bottom:8px}
+
+@media(max-width:640px){
+  .panel{padding:28px 22px}
+  .mode-grid{grid-template-columns:1fr 1fr}
+  .mode-card{padding:14px 8px}
+  .game-topbar{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<!-- Stars -->
+<div class="stars" id="stars"></div>
+
+<!-- ═══════════════════ SPLASH ═══════════════════ -->
+<div class="screen" id="splash-screen">
+  <div class="splash-logo">
+    🎵 FiguMate<br><span>Ritmo Matemático</span>
+  </div>
+  <div class="splash-sub">Figuras Musicales</div>
+  <div class="splash-notes">
+    <span class="note-icon">♩</span>
+    <span class="note-icon">♪</span>
+    <span class="note-icon">♫</span>
+  </div>
+  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+  <div class="splash-author">KABERT STUDIO – LMKE</div>
+</div>
+
+<!-- ═══════════════════ AUTH ═══════════════════ -->
+<div class="screen hidden" id="auth-screen">
+  <div class="panel">
+    <span class="emoji-title">🎼</span>
+    <h1>FiguMate</h1>
+    <p class="subtitle">Inicia sesión o continúa como invitado</p>
+
+    <div class="tab-row">
+      <button class="tab active" onclick="switchTab('login')">Iniciar Sesión</button>
+      <button class="tab" onclick="switchTab('register')">Registrarse</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="tab-login">
+      <label>Nombre de usuario</label>
+      <input type="text" id="login-user" placeholder="Tu nombre de usuario" autocomplete="username">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+      <div class="msg error" id="login-error"></div>
+      <button class="btn btn-primary mt" onclick="doLogin()">🚀 Entrar</button>
+      <div class="divider">o</div>
+      <button class="btn btn-ghost" onclick="doGuest()">👤 Continuar como Invitado</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="tab-register" style="display:none">
+      <label>Nombre de usuario</label>
+      <input type="text" id="reg-user" placeholder="Elige un nombre único" autocomplete="username">
+      <label>Contraseña</label>
+      <input type="password" id="reg-pass" placeholder="••••••••" autocomplete="new-password">
+      <label>Confirmar contraseña</label>
+      <input type="password" id="reg-pass2" placeholder="••••••••" autocomplete="new-password">
+      <div class="msg error" id="reg-error"></div>
+      <div class="msg success" id="reg-ok"></div>
+      <button class="btn btn-success mt" onclick="doRegister()">✅ Crear Cuenta</button>
+      <div class="divider">o</div>
+      <button class="btn btn-ghost" onclick="doGuest()">👤 Continuar como Invitado</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN MENU ═══════════════════ -->
+<div class="screen hidden" id="menu-screen">
+  <div class="panel">
+    <div class="menu-header">
+      <div class="user-chip" id="user-chip">🎵 Jugador</div>
+      <h1>¡A Jugar!</h1>
+      <p class="subtitle">Elige tu modo de juego</p>
+    </div>
+
+    <div class="mode-grid" id="mode-grid">
+      <div class="mode-card selected" data-mode="training" onclick="selectMode(this,'training')">
+        <span class="mode-icon">🎓</span>
+        <div class="mode-name">Entrenamiento</div>
+        <div class="mode-desc">Sin límite de tiempo</div>
+      </div>
+      <div class="mode-card" data-mode="timer" onclick="selectMode(this,'timer')">
+        <span class="mode-icon">⏱️</span>
+        <div class="mode-name">Contrarreloj</div>
+        <div class="mode-desc">Tiempo limitado</div>
+      </div>
+      <div class="mode-card" data-mode="sudden" onclick="selectMode(this,'sudden')">
+        <span class="mode-icon">💀</span>
+        <div class="mode-name">Muerte Súbita</div>
+        <div class="mode-desc">Un error = fin</div>
+      </div>
+      <div class="mode-card" data-mode="zen" onclick="selectMode(this,'zen')">
+        <span class="mode-icon">🧘</span>
+        <div class="mode-name">Zen</div>
+        <div class="mode-desc">Sin puntuación</div>
+      </div>
+    </div>
+
+    <div id="timer-row" style="display:none">
+      <label>⏱️ Tiempo límite (minutos)</label>
+      <input type="number" id="time-limit" value="2" min="0.5" max="10" step="0.5">
+    </div>
+
+    <label>🎯 Nivel</label>
+    <select id="level-select"></select>
+
+    <button class="btn btn-primary mt" onclick="startCountdown()">🎮 ¡JUGAR!</button>
+
+    <div class="row mt">
+      <button class="btn btn-ghost btn-sm" onclick="showRanking()">🏆 Ranking</button>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">🚪 Salir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ RANKING ═══════════════════ -->
+<div class="screen hidden" id="ranking-screen">
+  <div class="panel">
+    <span class="emoji-title">🏆</span>
+    <h1>Ranking Global</h1>
+
+    <div class="rank-tabs" id="rank-tabs">
+      <button class="rank-tab active" onclick="filterRank('all',this)">Todos</button>
+      <button class="rank-tab" onclick="filterRank('training',this)">Entrenamiento</button>
+      <button class="rank-tab" onclick="filterRank('timer',this)">Contrarreloj</button>
+      <button class="rank-tab" onclick="filterRank('sudden',this)">Muerte Súbita</button>
+    </div>
+
+    <ul class="rank-list" id="rank-list">
+      <li style="text-align:center;color:#aaa;padding:20px">Cargando...</li>
+    </ul>
+
+    <button class="btn btn-ghost mt" onclick="showScreen('menu-screen')">⬅️ Volver</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ COUNTDOWN ═══════════════════ -->
+<div class="screen hidden" id="countdown-screen">
+  <div class="countdown-num" id="countdown-num">5</div>
+  <div class="countdown-label" id="countdown-label">Nivel 1</div>
+</div>
+
+<!-- ═══════════════════ GAME ═══════════════════ -->
+<div class="screen hidden" id="game-screen">
+  <div class="game-wrap">
+    <div class="game-topbar">
+      <div class="game-topbar-left">
+        <div class="game-title" id="game-title">🎵 FiguMate</div>
+        <div class="badge" id="mode-badge">Entrenamiento</div>
+        <div class="badge" id="level-badge">Nivel 1</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="badge timer-badge" id="timer-badge" style="display:none">⏱️ 2:00</div>
+        <button class="btn btn-ghost btn-sm" onclick="backToMenu()">🔙 Menú</button>
+      </div>
+    </div>
+
+    <div class="score-banner" id="score-banner">
+      <div class="score-big" id="score-big">0/10</div>
+      <div class="score-label" id="score-label">Puntuación: 0</div>
+    </div>
+
+    <div class="ex-grid" id="ex-grid"></div>
+
+    <div class="game-actions" id="game-actions">
+      <button class="btn btn-primary" onclick="checkAll()">✅ Comprobar Todo</button>
+      <button class="btn btn-warning" onclick="showAnswers()">💡 Ver Respuestas</button>
+      <button class="btn btn-ghost" onclick="backToMenu()">🔙 Regresar</button>
+    </div>
+
+    <div class="game-actions hidden" id="nav-actions">
+      <button class="btn btn-ghost" onclick="prevLevel()">⬅️ Anterior</button>
+      <button class="btn btn-success" onclick="nextLevel()">Siguiente ➡️</button>
+      <button class="btn btn-danger" onclick="backToMenu()">🏠 Menú</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ═══════════════════ FIREBASE ═══════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where }
+  from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// ─── CONFIGURE YOUR FIREBASE PROJECT HERE ────────────────────
+// Reemplaza estos valores con los de tu proyecto Firebase
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_PROJECT.firebaseapp.com",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_PROJECT.appspot.com",
+  messagingSenderId: "TU_SENDER_ID",
+  appId: "TU_APP_ID"
+};
+
+let db = null;
+let firebaseReady = false;
+
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  firebaseReady = true;
+  console.log("Firebase OK");
+} catch(e) {
+  console.warn("Firebase no configurado – modo local:", e.message);
+}
+
+// Expose to global scope
+window.fbSaveScore = async (entry) => {
+  if (!firebaseReady || !db) { localSave(entry); return; }
+  try {
+    await addDoc(collection(db, "scores"), {
+      ...entry,
+      timestamp: Date.now()
+    });
+  } catch(e) {
+    console.warn("Firebase save error:", e);
+    localSave(entry);
+  }
+};
+
+window.fbLoadRanking = async (modeFilter) => {
+  if (!firebaseReady || !db) return localLoad(modeFilter);
+  try {
+    let q;
+    if (modeFilter === 'all') {
+      q = query(collection(db, "scores"), orderBy("score","desc"), limit(20));
+    } else {
+      q = query(collection(db, "scores"),
+        where("mode","==",modeFilter),
+        orderBy("score","desc"), limit(20));
+    }
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data());
+  } catch(e) {
+    console.warn("Firebase read error:", e);
+    return localLoad(modeFilter);
+  }
+};
+
+function localSave(entry) {
+  const data = JSON.parse(localStorage.getItem('fm_scores') || '[]');
+  data.push({...entry, timestamp: Date.now()});
+  data.sort((a,b) => b.score - a.score);
+  localStorage.setItem('fm_scores', JSON.stringify(data.slice(0,100)));
+}
+
+function localLoad(modeFilter) {
+  const data = JSON.parse(localStorage.getItem('fm_scores') || '[]');
+  const filtered = modeFilter === 'all' ? data : data.filter(x => x.mode === modeFilter);
+  return filtered.sort((a,b) => b.score - a.score).slice(0,20);
+}
+</script>
+
+<!-- ═══════════════════ APP LOGIC ═══════════════════ -->
+<script>
+// ─── AUDIO ────────────────────────────────────────────────────
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+
+function beep(freq=440, dur=0.15, type='sine', vol=0.4, delay=0){
+  const o = AC.createOscillator();
+  const g = AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, AC.currentTime + delay);
+  g.gain.linearRampToValueAtTime(vol, AC.currentTime + delay + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + delay + dur);
+  o.start(AC.currentTime + delay);
+  o.stop(AC.currentTime + delay + dur + 0.05);
+}
+
+const SFX = {
+  click:   () => beep(880, 0.08, 'square', 0.2),
+  correct: () => { beep(523,0.1,'sine',0.3); beep(659,0.1,'sine',0.3,0.1); beep(784,0.15,'sine',0.3,0.2); },
+  wrong:   () => { beep(200,0.2,'sawtooth',0.3); beep(150,0.2,'sawtooth',0.2,0.15); },
+  levelup: () => { [523,659,784,1047].forEach((f,i) => beep(f,0.12,'sine',0.25,i*0.1)); },
+  countdown: (n) => beep(n===0?880:440, 0.18, 'sine', 0.35),
+  splash:  () => { beep(523,0.1,'sine',0.2,0); beep(659,0.1,'sine',0.2,0.1); beep(784,0.2,'sine',0.25,0.2); beep(1047,0.3,'sine',0.3,0.35); },
+  timeout: () => { beep(300,0.3,'sawtooth',0.4); beep(200,0.4,'sawtooth',0.4,0.25); }
+};
+
+// ─── STARS ────────────────────────────────────────────────────
+(function(){
+  const c = document.getElementById('stars');
+  for(let i=0;i<80;i++){
+    const s = document.createElement('div');
+    s.className='star';
+    const sz = Math.random()*3+1;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;
+      --d:${Math.random()*3+1}s;animation-delay:${Math.random()*3}s`;
+    c.appendChild(s);
+  }
+})();
+
+// ─── FIGURES ─────────────────────────────────────────────────
+const FIGURES = {
+  "redonda":4,"blanca":2,"negra":1,"corchea":0.5,"semicorchea":0.25,
+  "redonda-sil":4,"blanca-sil":2,"negra-sil":1,"corchea-sil":0.5,"semicorchea-sil":0.25,
+  "corro":1,"pescame":1,"sabado":1,"detengo":1,"ligerito":1,"tresillo":1,"salto":1,"vamos":1
+};
+const REPO = "https://raw.githubusercontent.com/kabertpro/figumategame/main/figuras/";
+
+// ─── STATE ────────────────────────────────────────────────────
+let G = {
+  user: null, isGuest: false,
+  mode: 'training', level: 1,
+  exercises: [], answers: [],
+  timer: null, timeLeft: 0, timeLimit: 120,
+  startTime: 0, correct: 0,
+  dead: false, // sudden death
+  checked: false
+};
+
+// ─── USERS (localStorage) ─────────────────────────────────────
+function getUsers(){ return JSON.parse(localStorage.getItem('fm_users')||'{}'); }
+function saveUsers(u){ localStorage.setItem('fm_users', JSON.stringify(u)); }
+
+// ─── SCREENS ─────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{
+    s.classList.toggle('hidden', s.id !== id);
+  });
+}
+
+// ─── AUTH TABS ────────────────────────────────────────────────
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',
+    (t==='login'&&i===0)||(t==='register'&&i===1)));
+  document.getElementById('tab-login').style.display = t==='login'?'':'none';
+  document.getElementById('tab-register').style.display = t==='register'?'':'none';
+  SFX.click();
+}
+window.switchTab = switchTab;
+
+function showMsg(id, text, type='error'){
+  const el = document.getElementById(id);
+  el.textContent = text; el.className = `msg ${type} show`;
+}
+function hideMsg(id){ document.getElementById(id).classList.remove('show'); }
+
+function doLogin(){
+  SFX.click();
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  hideMsg('login-error');
+  if(!u||!p){ showMsg('login-error','Completa todos los campos'); return; }
+  const users = getUsers();
+  if(!users[u.toLowerCase()]){ showMsg('login-error','Usuario no encontrado'); return; }
+  if(users[u.toLowerCase()].pass !== btoa(p)){ showMsg('login-error','Contraseña incorrecta'); return; }
+  G.user = u; G.isGuest = false;
+  SFX.levelup();
+  goToMenu();
+}
+window.doLogin = doLogin;
+
+function doRegister(){
+  SFX.click();
+  const u = document.getElementById('reg-user').value.trim();
+  const p = document.getElementById('reg-pass').value;
+  const p2 = document.getElementById('reg-pass2').value;
+  hideMsg('reg-error'); hideMsg('reg-ok');
+  if(!u||!p||!p2){ showMsg('reg-error','Completa todos los campos'); return; }
+  if(u.length<3){ showMsg('reg-error','El nombre debe tener al menos 3 caracteres'); return; }
+  if(p.length<4){ showMsg('reg-error','La contraseña debe tener al menos 4 caracteres'); return; }
+  if(p!==p2){ showMsg('reg-error','Las contraseñas no coinciden'); return; }
+  const users = getUsers();
+  if(users[u.toLowerCase()]){ showMsg('reg-error','Ese nombre ya está en uso'); return; }
+  users[u.toLowerCase()] = { display: u, pass: btoa(p) };
+  saveUsers(users);
+  showMsg('reg-ok','¡Cuenta creada! Ahora inicia sesión 🎉','success');
+  setTimeout(()=>switchTab('login'), 1200);
+}
+window.doRegister = doRegister;
+
+function doGuest(){
+  SFX.click();
+  G.user = 'Invitado_' + Math.floor(Math.random()*9000+1000);
+  G.isGuest = true;
+  goToMenu();
+}
+window.doGuest = doGuest;
+
+function doLogout(){
+  SFX.click();
+  G.user = null; G.isGuest = false;
+  showScreen('auth-screen');
+}
+window.doLogout = doLogout;
+
+// ─── MENU ────────────────────────────────────────────────────
+function goToMenu(){
+  document.getElementById('user-chip').textContent =
+    `${G.isGuest?'👤':'🎵'} ${G.user}`;
+  populateLevels();
+  showScreen('menu-screen');
+}
+
+function populateLevels(){
+  const s = document.getElementById('level-select');
+  s.innerHTML='';
+  for(let i=1;i<=30;i++){
+    const o = document.createElement('option');
+    o.value=i;
+    const t = i<=10?'Principiante':i<=20?'Amateur':'Profesional';
+    o.textContent=`Nivel ${i} – ${t}`;
+    s.appendChild(o);
+  }
+}
+
+function selectMode(el, mode){
+  SFX.click();
+  document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  G.mode = mode;
+  document.getElementById('timer-row').style.display = mode==='timer'?'':'none';
+}
+window.selectMode = selectMode;
+
+// ─── COUNTDOWN ────────────────────────────────────────────────
+function startCountdown(){
+  AC.resume();
+  SFX.click();
+  G.level = parseInt(document.getElementById('level-select').value);
+  if(G.mode==='timer'){
+    G.timeLimit = parseFloat(document.getElementById('time-limit').value)*60;
+  }
+  showScreen('countdown-screen');
+  let n=5;
+  document.getElementById('countdown-label').textContent = `Nivel ${G.level}`;
+  updateCountdown(n);
+  SFX.countdown(n);
+  const iv = setInterval(()=>{
+    n--;
+    if(n>=0){
+      updateCountdown(n);
+      SFX.countdown(n===0?0:n);
+    } else {
+      clearInterval(iv);
+      startGame();
+    }
+  },1000);
+}
+window.startCountdown = startCountdown;
+
+function updateCountdown(n){
+  const el = document.getElementById('countdown-num');
+  el.textContent = n===0?'¡YA!':n;
+  el.style.animation='none';
+  requestAnimationFrame(()=>{ el.style.animation='countPop .8s cubic-bezier(.22,1,.36,1) both'; });
+}
+
+// ─── GAME ─────────────────────────────────────────────────────
+function getFigurePool(lvl){
+  if(lvl>10) return Object.keys(FIGURES);
+  let p=["negra","blanca","redonda"];
+  if(lvl>=2) p=p.concat(["negra-sil","blanca-sil","redonda-sil"]);
+  if(lvl>=3) p.push("corro"); if(lvl>=4) p.push("pescame");
+  if(lvl>=5) p.push("sabado"); if(lvl>=6) p.push("detengo");
+  if(lvl>=7) p.push("tresillo"); if(lvl>=8) p.push("ligerito");
+  if(lvl>=9) p.push("salto"); if(lvl>=10) p.push("vamos");
+  return p;
+}
+
+function genExercises(lvl){
+  const pool = getFigurePool(lvl);
+  const numFigs = lvl<21?4:Math.floor(Math.random()*4)+5;
+  const exs=[];
+  for(let i=0;i<10;i++){
+    let total,figs,ops;
+    do {
+      figs=[];
+      for(let j=0;j<numFigs;j++) figs.push(pool[Math.floor(Math.random()*pool.length)]);
+      ops=[];
+      for(let j=0;j<numFigs-1;j++) ops.push(lvl<=10?'+':Math.random()>.5?'+':'-');
+      total=FIGURES[figs[0]];
+      for(let j=0;j<ops.length;j++) total+=(ops[j]==='+'?1:-1)*FIGURES[figs[j+1]];
+    } while(total<1);
+    exs.push({figures:figs,operators:ops,total});
+  }
+  return exs;
+}
+
+function startGame(){
+  G.exercises = genExercises(G.level);
+  G.answers = new Array(10).fill('');
+  G.correct = 0;
+  G.dead = false;
+  G.checked = false;
+  G.startTime = Date.now();
+
+  document.getElementById('mode-badge').textContent = {
+    training:'🎓 Entrenamiento', timer:'⏱️ Contrarreloj',
+    sudden:'💀 Muerte Súbita', zen:'🧘 Zen'
+  }[G.mode];
+  document.getElementById('level-badge').textContent = `Nivel ${G.level}`;
+
+  const tb = document.getElementById('timer-badge');
+  if(G.mode==='timer'){
+    G.timeLeft = G.timeLimit;
+    tb.style.display='';
+    updateTimerBadge();
+    G.timer = setInterval(tickTimer, 1000);
+  } else { tb.style.display='none'; }
+
+  document.getElementById('score-banner').classList.remove('show');
+  document.getElementById('nav-actions').classList.add('hidden');
+  document.getElementById('game-actions').classList.remove('hidden');
+
+  renderExercises();
+  showScreen('game-screen');
+}
+
+function renderExercises(){
+  const grid = document.getElementById('ex-grid');
+  grid.innerHTML='';
+  G.exercises.forEach((ex,i)=>{
+    const card = document.createElement('div');
+    card.className='ex-card'; card.id=`card-${i}`;
+
+    const num = document.createElement('div');
+    num.className='ex-num'; num.textContent=`♪ Ejercicio ${i+1}`;
+    card.appendChild(num);
+
+    const row = document.createElement('div');
+    row.className='figures-row';
+    ex.figures.forEach((fig,j)=>{
+      const img = document.createElement('img');
+      img.src = `${REPO}${fig}.png`;
+      img.alt = fig;
+      img.onerror = ()=>{ img.src=`figuras/${fig}.png`; };
+      row.appendChild(img);
+      if(j<ex.operators.length){
+        const op=document.createElement('span');
+        op.className='op'; op.textContent=ex.operators[j];
+        row.appendChild(op);
+      }
+    });
+    card.appendChild(row);
+
+    const inp = document.createElement('input');
+    inp.type='text'; inp.className='ex-input';
+    inp.placeholder='Tu respuesta...';
+    inp.id=`inp-${i}`;
+    inp.dataset.idx=i;
+    inp.addEventListener('input', ()=>{ G.answers[i]=inp.value; });
+    inp.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){
+        if(G.mode==='sudden') checkSingle(i);
+        else checkAll();
+      }
+    });
+    card.appendChild(inp);
+
+    const fb = document.createElement('div');
+    fb.className='ex-fb'; fb.id=`fb-${i}`;
+    card.appendChild(fb);
+
+    grid.appendChild(card);
+  });
+}
+
+function tickTimer(){
+  G.timeLeft--;
+  updateTimerBadge();
+  if(G.timeLeft<=30){
+    document.getElementById('timer-badge').classList.add('timer-warn');
+  }
+  if(G.timeLeft<=0){
+    clearInterval(G.timer); G.timer=null;
+    SFX.timeout();
+    toast('⏰ ¡Tiempo agotado!');
+    checkAll();
+  }
+}
+
+function updateTimerBadge(){
+  const m=Math.floor(G.timeLeft/60), s=G.timeLeft%60;
+  document.getElementById('timer-badge').textContent=`⏱️ ${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function checkSingle(i){
+  const inp = document.getElementById(`inp-${i}`);
+  const fb  = document.getElementById(`fb-${i}`);
+  const val = parseFloat(inp.value);
+  if(isNaN(val)){ return; }
+  if(Math.abs(val-G.exercises[i].total)<0.01){
+    inp.classList.add('correct'); inp.disabled=true;
+    fb.className='ex-fb correct show'; fb.textContent='🎉 ¡Correcto!';
+    SFX.correct(); G.correct++;
+  } else {
+    inp.classList.add('wrong');
+    fb.className='ex-fb wrong show'; fb.textContent='❌ Incorrecto';
+    SFX.wrong();
+    if(G.mode==='sudden' && !G.dead){
+      G.dead=true;
+      setTimeout(()=>{
+        toast('💀 ¡Muerte Súbita! Fin del juego');
+        finishGame();
+      },800);
+    }
+  }
+}
+
+function checkAll(){
+  if(G.checked && G.mode!=='zen') return;
+  if(G.timer){ clearInterval(G.timer); G.timer=null; }
+  G.correct=0;
+  G.exercises.forEach((_,i)=>{
+    const inp=document.getElementById(`inp-${i}`);
+    const fb=document.getElementById(`fb-${i}`);
+    if(inp.disabled) { G.correct++; return; } // already correct in sudden
+    const val=parseFloat(inp.value);
+    if(isNaN(val)){
+      fb.className='ex-fb wrong show'; fb.textContent='⚠️ Sin respuesta';
+    } else if(Math.abs(val-G.exercises[i].total)<0.01){
+      inp.classList.add('correct'); inp.disabled=true;
+      fb.className='ex-fb correct show'; fb.textContent='🎉 ¡Correcto!';
+      G.correct++;
+    } else {
+      inp.classList.add('wrong');
+      fb.className='ex-fb wrong show'; fb.textContent='❌ Incorrecto';
+    }
+  });
+  if(G.correct===10) SFX.levelup(); else SFX.wrong();
+  G.checked=true;
+  finishGame();
+}
+window.checkAll = checkAll;
+
+function finishGame(){
+  const elapsed = (Date.now()-G.startTime)/1000;
+  let score = G.correct*10;
+  if(G.mode==='timer' && G.correct>0){
+    const bonus = Math.max(0,(G.timeLimit-elapsed)/G.timeLimit*50);
+    score = Math.round(score + bonus);
+  }
+  if(G.mode==='zen') score=0;
+
+  // Save score
+  if(!G.isGuest && G.mode!=='zen'){
+    const entry = {
+      user: G.user, score, correct: G.correct,
+      level: G.level, mode: G.mode,
+      elapsed: Math.round(elapsed)
+    };
+    window.fbSaveScore && window.fbSaveScore(entry);
+  }
+
+  const banner = document.getElementById('score-banner');
+  document.getElementById('score-big').textContent = `${G.correct}/10`;
+  document.getElementById('score-label').textContent =
+    G.mode==='zen' ? '🧘 Modo Zen – sin puntuación' :
+    `Puntuación: ${score} pts | Tiempo: ${Math.floor(elapsed/60)}:${(Math.floor(elapsed)%60).toString().padStart(2,'0')}`;
+  banner.classList.add('show');
+
+  document.getElementById('game-actions').classList.add('hidden');
+  document.getElementById('nav-actions').classList.remove('hidden');
+}
+
+function showAnswers(){
+  SFX.click();
+  G.exercises.forEach((ex,i)=>{
+    const fb=document.getElementById(`fb-${i}`);
+    fb.className='ex-fb hint show';
+    fb.textContent=`💡 Respuesta: ${ex.total}`;
+  });
+}
+window.showAnswers = showAnswers;
+
+function nextLevel(){
+  SFX.click();
+  if(G.level>=30){ toast('🏆 ¡Completaste todos los niveles!'); return; }
+  G.level++;
+  document.getElementById('level-select').value=G.level;
+  startCountdown();
+}
+window.nextLevel = nextLevel;
+
+function prevLevel(){
+  SFX.click();
+  if(G.level<=1) return;
+  G.level--;
+  document.getElementById('level-select').value=G.level;
+  startCountdown();
+}
+window.prevLevel = prevLevel;
+
+function backToMenu(){
+  SFX.click();
+  if(G.timer){ clearInterval(G.timer); G.timer=null; }
+  goToMenu();
+}
+window.backToMenu = backToMenu;
+
+// ─── RANKING ─────────────────────────────────────────────────
+let currentRankMode='all';
+
+async function showRanking(){
+  SFX.click();
+  showScreen('ranking-screen');
+  await loadRanking('all');
+}
+window.showRanking = showRanking;
+
+async function filterRank(mode, el){
+  SFX.click();
+  document.querySelectorAll('.rank-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  currentRankMode=mode;
+  await loadRanking(mode);
+}
+window.filterRank = filterRank;
+
+async function loadRanking(mode){
+  const list = document.getElementById('rank-list');
+  list.innerHTML='<li style="text-align:center;color:#aaa;padding:20px">⏳ Cargando...</li>';
+  try {
+    const data = await (window.fbLoadRanking ? window.fbLoadRanking(mode) : Promise.resolve([]));
+    if(!data || data.length===0){
+      list.innerHTML='<li style="text-align:center;color:#aaa;padding:30px;font-size:.9rem">Sin puntajes aún 🎵<br>¡Sé el primero!</li>';
+      return;
+    }
+    const medals=['🥇','🥈','🥉'];
+    list.innerHTML = data.map((d,i)=>{
+      const modeLabel={training:'🎓',timer:'⏱️',sudden:'💀',zen:'🧘'}[d.mode]||'🎵';
+      const date=d.timestamp?new Date(d.timestamp).toLocaleDateString('es'):'';
+      return `<li class="rank-item" style="animation-delay:${i*.05}s">
+        <span class="rank-medal">${medals[i]||`#${i+1}`}</span>
+        <span class="rank-name">${escHtml(d.user||'?')}</span>
+        <span class="rank-details">
+          <span class="rank-score">${d.score} pts</span>
+          ${modeLabel} Niv.${d.level||'?'} · ${d.correct||0}/10 · ${date}
+        </span>
+      </li>`;
+    }).join('');
+  } catch(e){
+    list.innerHTML='<li style="text-align:center;color:#f55;padding:20px">Error al cargar 😥</li>';
+  }
+}
+
+function escHtml(s){ return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ─── TOAST ────────────────────────────────────────────────────
+let toastT;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ─── SPLASH ───────────────────────────────────────────────────
+window.addEventListener('load', ()=>{
+  setTimeout(()=>SFX.splash(), 300);
+  setTimeout(()=>{
+    document.getElementById('splash-screen').classList.add('hidden');
+    showScreen('auth-screen');
+  }, 3800);
+});
+</script>
+</body>
+</html>
